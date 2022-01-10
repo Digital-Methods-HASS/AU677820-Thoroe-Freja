@@ -1,0 +1,408 @@
+---
+title: "Final Project: Lynching in the US from 1883-1941, final results"
+author: "Freja Skall Thorøe"
+date: "8/1/2022"
+output: html_document
+---
+#Introduction to the script
+The following script is both showing my final results as well as thoughts I did while working. The first few headlines are graphs of the data. 
+Later in the script all my attemps at mapping the lynchings will be shown. To make sure that my code can be made into an html document, I marked my failed codes with an "#". 
+
+# An introduction to the used datasets, and final graphs
+Loading the library and document with the lynching data from David Rigby and Charles Sequin's study, "National Crimes: A New National Data Set of Lynchings in the United States, 1883 to 1941."
+
+This first upload is the raw version directly from Seguins online Archive. 
+```{r}
+library(tidyverse)
+setwd('/Users/freja/AU - R/Final_Project/Final_project_tidy/')
+Lynching_data_Rigby_raw <- read_csv('/Users/freja/AU - R/Final_Project/Datasets for assignment/Seguin_data_lynchingUS_raw.csv')
+(Lynching_data_Rigby_raw)
+```
+The dataset looks alright upfront, however, it's got a few black cells and some cells with only "." in them. I will use OpenRefine to correct so all cells are filled out. I also correct the county cell, so that it didn't have uppercase letters except for the first letter. This new dataset will be in the github repository: 'https://github.com/Digital-Methods-HASS/AU677820-Thoroe-Freja', under the name "Seguin_data_lynchings_tidy.csv"
+```{r}
+Lynching_data_Rigby_tidy <- read_csv('/Users/freja/AU - R/Final_Project/Datasets for assignment/Seguin_data_lynchingUS_tidy.csv')
+(Lynching_data_Rigby_tidy)
+```
+Now I want to look into the data a little more. First I wanna look at the development in the amounts of lynchings in the period from 1883 to 1941. But first I'll have to make another table that contains the amounts of lynchings pr. year. 
+
+##Lynchings pr. year
+```{r}
+Lynchings_pr_year <- Lynching_data_Rigby_tidy %>%
+  group_by(year) %>%
+  count(year,sort = TRUE)
+  
+Lynchings_pr_year <- rename(Lynchings_pr_year, number_of_lynchings=n)
+
+(Lynchings_pr_year)
+```
+Now I can plot this new data into ggplot and make graphs. 
+```{r}
+Lynchings_pr_year %>% 
+  ggplot()+
+  geom_line(mapping = aes(x=Lynchings_pr_year$year,
+                          y=number_of_lynchings))+
+  labs(x="Year",
+       y="Number of lynchings pr. year",
+       title = "Number of lynchings in the US, from 1883 to 1936")
+```
+Geom_smooth is more easy on the eyes. But choosing the geom_line since it shows the patterns better. The graph clearly shows hos the number of lynchings decreased from 1883-1936. The amounts of lynchings seems to be lower than other dataset. I will try to load another dataset that show lynchings.
+
+##Tuskegee Institute data
+```{r}
+Lynching_data_Tuskegee <- read_csv('/Users/freja/AU - R/Final_Project/Datasets for assignment/LynchingUS_Tuskegee_data_tidy.csv')
+head(Lynching_data_Tuskegee)
+```
+```{r}
+Lynching_data_Tuskegee %>% 
+  ggplot()+
+  geom_line(mapping = aes(x=Lynching_data_Tuskegee$Year,
+                          y=Lynching_data_Tuskegee$Total))+
+  labs(x="Year",
+       y="Number of lynchings pr. year",
+       title = "Number of lynchings in the US, from 1882 to 1968")
+```
+The graph from the Tuskegee Institute data has a very similar pattern to the Rigby data.
+
+The Rigby data also has a lot of other variables that could be interesting to look at. First I will take a look on how many lynchings that were done from state to state.
+
+```{r}
+Lynchings_pr_state <- Lynching_data_Rigby_tidy %>% 
+  drop_na(state) %>% 
+  group_by(state) %>% 
+  count(state,sort = TRUE)
+Lynchings_pr_state <- rename(Lynchings_pr_state,number_of_lynchings_pr_state=n)
+head(Lynchings_pr_state)
+```
+Texas is the state with most lynching incidents. It would still be interesting to see if the lynched victims were mostly black. I use the same technique to count the lynchings pr. race.
+
+```{r}
+Lynchings_pr_race <- Lynching_data_Rigby_tidy %>% 
+  group_by(race) %>% 
+  drop_na(race) %>% 
+  count(race, sort = TRUE)
+Lynchings_pr_race <- rename(Lynchings_pr_race,number_of_lynchings_pr_race=n)
+head(Lynchings_pr_race)
+```
+Most of the lynchings were black, which points to lynching being a racially motivated. However, there also were quite a lot of cases of lynched whites. However, when thinking that blacks were about 10 pct. of the American population, there were quite a difference. This dataset only show that 622 blacks were lynched between 1883-1941, however, a report from the organisation points to more than 4000 lynchings of blacks from 1877 to the World War II. 
+
+Both the graph of the Rigby data and the Tuskegee data show the US total number lynchings. And they don't show what the race the victims had. However, it could be interesting to see how many victims were black and white, and if there was a development of that over time.
+
+#Making visualizations with ggplot
+
+##Lychings pr. year and race
+
+After a few tries entering the whole Rigby dataset into R, and only getting mushed and incomprehensible outputs, I decided once more to only make a graph with a few observations from the dataset, such as, year, race, and total number of lynchings. 
+```{r}
+Lynchings_by_year_race <- Lynching_data_Rigby_tidy %>% 
+  group_by(year) %>% 
+  count(race, sort = TRUE) 
+
+Lynchings_by_year_race <- rename(Lynchings_by_year_race,number_of_victims=n)
+
+Lynchings_by_year_race %>% 
+  ggplot()+
+  geom_point(mapping = aes(x=Lynchings_by_year_race$year,
+                          y=Lynchings_by_year_race$number_of_victims,
+                          color = race))+
+  theme(legend.position = "bottom")+
+  labs(x = "Year",
+       y="Number of lynchings pr. year",
+       title = "Number of lynchings in the US, from 1883 to 1936, marked by race")
+```
+This visualization was quite succesfull. It shows the development of lynchings pr. year and sorts it by race. That way it becomes clear, that most of the lynchings in the late 19th century were white, or maybe white. It matches with the different regimes that David Rigby is making in his article "National Crimes: A New National Data Set of Lynchings in the United States, 1883 to 1941." Where he points to 3 different regimes: A Wild West Regime, where mostly whites were lynched in areas with weak state penetration; a slavey regime, found in former slave states, mostly in the south; and a minor regime of Mexican nationals being lynched along the Texas-Mexico border. 
+
+Faceting the maps to make the visualization more clear:
+I now use geom_line to show a more clear development graphically. Using geom_point in the previous is quite helpfull, since we want to see the development for the lynchings by each race.
+```{r}
+ggplot(data = Lynchings_by_year_race)+
+  geom_smooth(mapping = aes(x=Lynchings_by_year_race$year,
+                          y=Lynchings_by_year_race$number_of_victims,
+                          color = race))+
+  facet_wrap(~race, nrow = 4,ncol = 3)+
+  theme(legend.position = "bottom")+
+  labs(x = "Year",
+       y="Number of lynchings pr. year",
+       title = "Number of lynchings in the US, from 1883 to 1936, marked by race")
+```
+Here it becomes clear, that the development in the lynching of whites (both White and White ? - meaning white, european immigrants) is declining fast after 1890. For Black it only declines slowly, and the numbers are quite high even in the beginning of the 1900s.
+
+##Lychings pr. year and state
+Using the same technique to see which states had the most lynchings and if it was mostly southern states.
+```{r}
+Lynchings_by_year_state <- Lynching_data_Rigby_tidy %>% 
+  group_by(year) %>% 
+  count(state, sort = TRUE)
+Lynchings_by_year_state <- rename(Lynchings_by_year_state, number_of_lynchings=n)
+(Lynchings_by_year_state)
+```
+Visualizing the new table:
+```{r}
+ggplot(data = Lynchings_by_year_state)+
+  geom_line(mapping = aes(x=Lynchings_by_year_state$year,
+                          y=Lynchings_by_year_state$number_of_lynchings,
+                          color = state))+
+  facet_wrap(~ state, nrow =18,ncol =18 ) +
+  theme(legend.position = "bottom")+
+  labs(x = "Year",
+       y="Number of lynchings pr. year",
+       title = "Number of lynchings in the US, from 1883 to 1936, marked by state")
+```
+This way of looking at the lynchings in the states is quite messy and not very comprehensible. Using maps would be way better.
+
+#Mapping the lynching: In which part of the US was it occuring most frequently?
+
+##Making maps with ggplot2
+
+First I try to find a way to make a US map. 
+
+The example from "maths.usyd.edu.au" seems to work fine. The dataset must be within the package (ggplot2). I now have to find a way to make this map with counties and with lynchings. 
+
+When I change the data from state -> county, it does not work, since it still shows the US states. 
+```{r}
+ggplot_data <- data.frame(murder = USArrests$Murder, county = tolower(rownames(USArrests)))
+map <- map_data("county")
+k <- ggplot(ggplot_data,aes(fill= murder))
+k+geom_map(aes(map_id=county), map=map)+
+  expand_limits(x=map$long, y=map$lat)
+```
+However, when entering my own data, it did not seem to work. There was a fault in aesthetics. That I couldn't figure out to solve.
+
+## Making maps with the USmap package
+First installing the right packages and activation the libraries. 
+
+I tried following this guide: https://jtr13.github.io/cc19/different-ways-of-plotting-u-s-map-in-r.html. 
+
+I found out that the "USmap" package already had made up maps, however, I do not know how to add markers automatically. I can add markers manually, but it would take me forever with the large dataset I am working with. 
+```{r}
+library(usmap)
+plot_usmap(regions = "states") + 
+  labs(title = "U.S. States",
+       subtitle = "This is a blank map of the United States.") + 
+  theme(panel.background=element_blank())
+```
+
+Trying to create map from dataset in the guide. 
+```{r}
+usmap::plot_usmap("states", labels = TRUE)
+```
+```{r}
+usmap::plot_usmap("counties", labels = FALSE)
+```
+With the USmap package it is possible to join the package with another dataset. This dataset can only contain 2 columns, on that contains the fibs (for state, or county) and one that contains the values. So first, I will have to make a new table, that can be used. I followed this discription of the USmap package: 'https://cran.r-project.org/web/packages/usmap/usmap.pdf'
+```{r}
+library(dplyr)
+Lynchings_sorted_by_county <- Lynching_data_Rigby_tidy %>% 
+  select(full_fips,victim)
+
+head(Lynchings_sorted_by_county)
+```
+Now that we have a table with two columns, we can test it with the USmap package. 
+I still get fault messages. It seems that I can only add one column to the USmap which is making the tool limited. So I have to use another method. I use the "#" to mark when I have tried a function that does not work. 
+```{r}
+#Lynchings_sorted_by_county %>% 
+#map_with_data(full_fips,values = "victim",include = c(), exclude = c(),na=NA)
+```
+I get the: Error in map_with_data(., full_fips, values = "victim", include = c(),  : 
+  unused argument (full_fips).
+
+I cannot seem to get the data to work together, so I will try another solution. 
+  
+##Second attempt in mapping with ggplot:
+Trying to follow a YouTube Guide on how to make maps: "https://www.youtube.com/watch?v=AgWgPSZ7Gp0"
+
+Making sure to read the necessary libraries and then I load the "map_data" set with latitude and longtitude for all countries and regions.
+```{r}
+library(ggplot2)
+library(tidyverse)
+#Loading data:
+mapdata <- map_data("county")
+rename(mapdata, county=subregion)
+```
+
+Renaming the "subregion" column in mapdata to "county" to be able to join or merge.
+
+```{r}
+#mapdata_Lynching <- #anti_join(mapdata,Lynching_data_Rigby_tidy, by = "county")
+```
+It keeps showing the faultmessage: "Error: Join columns must be present in data.
+x Problem with `county`.
+Run `rlang::last_error()` to see where the error occurred." And I cant figure out why the two datasets will not be joined either by: full_join, anti_join, righ_join, left_join or the merge function. 
+
+Since I could not get the county to merge or join, I wanted to try and see wheather the FIPS codes could be joined. 
+
+I found a dataset that said it had both coordinates and FIPS, so I loaded it into R, however, it didn't contain latitude and longtitude. So I again had to find another way of getting my data ready for mapping. 
+
+```{r}
+#US_fips_lng_lat <- read_csv("/Users/freja/AU - R/Final_Project/Datasets for assignment/ZIP-COUNTY-FIPS_2010-03.csv")
+
+#renaming the "STCOUNTYFP" to "full_fips". 
+#US_fips_lng_lat <- rename(US_fips_lng_lat,full_fips=STCOUNTYFP)
+#(US_fips_lng_lat)
+```
+#Attempting to map with Leaflet in R.
+
+Following Brent Thorne, "Leaflet MApping in RStudio - Adding Markers": https://www.youtube.com/watch?v=dBk8gGX1MNk
+##Making a map over the lynchings pr. state
+```{r}
+library(tidyverse)
+US_states_lat_lng <- read.csv('/Users/freja/AU - R/Final_Project/df_us_states_coordinates/world_country_and_usa_states_latitude_and_longitude_values.csv')
+US_states_lat_lng$country_code=NULL
+US_states_lat_lng$latitude=NULL
+US_states_lat_lng$longitude=NULL
+US_states_lat_lng$country=NULL
+US_states_lat_lng <- rename(US_states_lat_lng, state=usa_state_code)
+head(US_states_lat_lng)
+```
+Now I will be ready to merge the two tables...
+```{r}
+Lynching_states_merge <- merge(Lynching_data_Rigby_tidy,US_states_lat_lng, by = "state", )
+head(Lynching_states_merge)
+```
+Now I finally have a map with coordinates in it so I can make markers in leaflet or use ggplot2. Depending on what method suits better. But first I try with leaflet.
+
+##Mapping the number of lynchings pr. state. Using leaflet
+
+First I will clean my data titles, so that I will able to use the table in an easy way:
+```{r}
+Lynching_states_merge <- rename(Lynching_states_merge, latitude=usa_state_latitude)
+Lynching_states_merge <- rename(Lynching_states_merge, longitude=usa_state_longitude)
+
+```
+
+Preparing the data for mapping:
+first, making sure that my lng, lat are numerics.
+```{r}
+Lynching_states_merge$longitude <- as.numeric(Lynching_states_merge$longitude)
+Lynching_states_merge$latitude <- as.numeric(Lynching_states_merge$latitude)
+
+```
+
+Creating a new spacialpoints dataframe. Not sure why I did this step. 
+```{r}
+library(leaflet)
+library(sp)
+Lynching_states_merge_SP <- SpatialPointsDataFrame(Lynching_states_merge[,c(19,20)],Lynching_states_merge[,-c(19,20)])
+```
+Now I can place my markers. 
+```{r}
+map_lynchings_pr_state <- leaflet() %>% 
+  setView(-93.65,42.0285,zoom = 4) %>% 
+  addTiles() %>% 
+  addMarkers(data = Lynching_states_merge, lng = ~longitude,lat = ~latitude,popup = ~victim)
+
+map_lynchings_pr_state
+```
+It seems that only one marker is placed for each state, so that the rest who were lynched in the same state aren't shown.
+
+Trying to add circles instead, to see if that makes a difference.
+```{r}
+Lynching_pr_state_map <- leaflet() %>% setView(-93.65, 42.0285, zoom = 4) %>% 
+  addTiles() %>% 
+  addCircles(data = Lynching_states_merge, lng = ~longitude,lat = ~latitude, weight = 30,
+    radius = ~sqrt(1), popup = ~victim)
+
+Lynching_pr_state_map
+```
+Did not really work either...
+
+##Forth attempt at using ggplot and the maps package:
+Loading the libraries:
+```{r}
+library(ggplot2)
+library(maps)
+```
+I tried following Mike Gruszczynski's guide on mapping in R using ggplot. Most of the code is taken direcly from Gruszczynski's example. 
+```{r}
+counties <- map_data("county")
+ggplot(data=counties) + 
+  geom_polygon(aes(x=long, y=lat, group=group), colour="black", fill='white', size=.2) +
+  coord_fixed(1.3) + theme_void()
+```
+Now I try to load the fips codes. I call them fips_codes. Since the county.fips region and subregion data are merged inder "polynam", I first will have to separate these. 
+
+```{r}
+fips_codes <- county.fips %>% 
+   separate(polyname, c("region", "subregion"), ",")
+(fips_codes)
+```
+Now it's time to merge the fips_codes data with the counties data. First I use the anti_join function to make sure that there is no troublesome cells in the merging of the columns. 
+The anti_join function keeps only those observations in the counties dataset that don't match with the ones in the fips_codes dataset. 
+```{r}
+anti_join(counties, fips_codes, by=c("region","subregion")) %>%
+  select(region,subregion) %>%
+  group_by(region,subregion) %>%
+  summarise(n())
+```
+There are 8 problem counties that don't match up. To see what these are called in the fips_codes dataset I filter the troublesome cells
+
+```{r}
+fips_codes %>%
+  filter(grepl("okaloo|martin|curri|oglala|galve|acco|pierc|juan", subregion))
+```
+When separating the commaseparated values earlier, a few colonseparated subsubregion splits. These I have to split again.
+First i separate the region and subregion, and then I separate the subrigion and the sub-subregion.
+```{r}
+fips_codes <- county.fips %>%
+  separate(polyname, c("region","subregion"), ",",) %>%
+  separate(subregion, c("subregion","subsubregion"), ":")
+```
+The warning-message is shown because of some missing values (NA), however the code still seems to work. 
+
+```{r}
+anti_join(counties, fips_codes, by=c("region","subregion")) %>%
+  select(region,subregion) %>%
+  group_by(region,subregion) %>%
+  summarise(n())
+```
+Since I have now checked the data with the anti_join function, I can now full_join the "counties" and the "fips_codes".
+
+```{r}
+counties <- full_join(counties, fips_codes, by=c("region","subregion"))
+
+counties <- rename(counties,county=subregion)
+(counties)
+```
+Now I have a table with both FIPS and longtitude and latitude. So I can try to join lynching data with this new dataset.
+
+Now I try to join my tables together:
+```{r}
+#inspecting the data...
+Lynching_data_Rigby_tidy
+```
+First trying the following: 
+```{r}
+#Lynching_counties_merge <- merge(Lynching_data_Rigby_tidy,counties, by = "county", )
+#view(Lynching_counties_merge)
+```
+Does not work...I don't understand why I get this faultmessage: "Error in fix.by(by.y, y) : 'by' skal angive en unik gyldig kolonne", since I've checked that both "county" columns are "chr"
+
+A stack user said to specify the by.x and by.y (https://stackoverflow.com/questions/33047218/merge-problems-in-r-error-in-fix-byby-x-x-by-must-specify-uniquely-valid/39695057)
+```{r}
+#Lynching_counties_merge <- merge(Lynching_data_Rigby_tidy, counties, by.x = c("county"), by.y = c("county"))
+#head(Lynching_counties_merge)
+```
+I keep getting this faultmesseage: "Error in fix.by(by.x, x) : 'by' skal angive en unik gyldig kolonne"
+
+Since I had renamed the column "county" I thought it would be okay. Turned out I hadn't renamed the column indefinately. So it could not find the name "county" in the counties dataset. 
+```{r}
+Lynching_counties_merge <- merge(Lynching_data_Rigby_tidy,counties, by = "county", )
+
+head(Lynching_counties_merge)
+```
+It has after so many tutorials, hours, sweat and tears finally merged together my lynching dataset with county coordinates.
+
+I first create a new spacialpoints dataframe. Not sure why I did this step.
+```{r}
+Lynching_counties_merge_SP <- SpatialPointsDataFrame(Lynching_counties_merge[,c(19,20)],Lynching_counties_merge[,-c(19,20)])
+```
+
+
+```{r}
+Lynching_Rigby_map <- leaflet() %>%
+  addTiles() %>%
+  addMarkers(data = Lynching_counties_merge, lng = ~long, lat = ~lat, popup = ~victim)
+Lynching_Rigby_map
+```
+
+
+
